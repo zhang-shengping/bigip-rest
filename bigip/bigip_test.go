@@ -11,6 +11,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+	"github.com/zhang-shengping/bigiprest/bigip/constants"
 )
 
 func TestInitSession(t *testing.T) {
@@ -46,32 +47,33 @@ func TestREST(t *testing.T) {
 	se := InitSession(host, username, password, inscure)
 	se.Client = &http.Client{}
 
-	body := se.REST(http.MethodGet, path, nil)
+	body, err := se.REST(http.MethodGet, path, nil)
+	assert.Nil(t, err)
 	assert.Equal(t, *body, resp)
 }
 
 func TestURIForName(t *testing.T) {
-	path := "/test_path/"
+	path := constants.VIRTUALADDRESS
 	partition := "test_partition"
 	name := "test_name"
 	serv := Service{
 		path,
 		&Session{},
 	}
-	expect := path + "~" + partition + "~" + name
+	expect := string(path) + "~" + partition + "~" + name
 	result := serv.URIForName(partition, name)
 
 	assert.Equal(t, result, expect)
 }
 
 func TestURIForPartition(t *testing.T) {
-	path := "/test_path/"
+	path := constants.VIRTUALADDRESS
 	partition := "test_partition"
 	serv := Service{
 		path,
 		&Session{},
 	}
-	expect := path + "?$filter=partition" + "%20eq%20" + partition
+	expect := string(path) + "?$filter=partition" + "%20eq%20" + partition
 	result := serv.URIForPartition(partition)
 
 	assert.Equal(t, result, expect)
@@ -82,7 +84,7 @@ func TestGetResource(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 
 	host := "bigip.com"
-	path := "/ltm/test_resource/"
+	path := constants.VIRTUALADDRESS
 	username := "admin"
 	password := "password"
 	inscure := true
@@ -104,8 +106,8 @@ func TestGetResource(t *testing.T) {
 		httpmock.NewBytesResponder(200, resp),
 	)
 
-	body := serv.GetResource(partition, name)
-
+	body, err := serv.GetResource(partition, name)
+	assert.Nil(t, err)
 	assert.Equal(t, *body, resp)
 }
 
@@ -114,7 +116,7 @@ func TestGetResources(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 
 	host := "bigip.com"
-	path := "/ltm/test_resources/"
+	path := constants.VIRTUALADDRESS
 	username := "admin"
 	password := "password"
 	inscure := true
@@ -135,8 +137,8 @@ func TestGetResources(t *testing.T) {
 		http.MethodGet, url, httpmock.NewBytesResponder(200, resp),
 	)
 
-	body := serv.GetResources(partition)
-
+	body, err := serv.GetResources(partition)
+	assert.Nil(t, err)
 	assert.Equal(t, *body, resp)
 
 }
@@ -146,7 +148,7 @@ func TestPatchResource(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 
 	host := "bigip.com"
-	path := "/ltm/test_resource/"
+	path := constants.VIRTUALADDRESS
 	username := "admin"
 	password := "password"
 	inscure := true
@@ -168,7 +170,7 @@ func TestPatchResource(t *testing.T) {
 		httpmock.NewBytesResponder(200, resp),
 	)
 
-	body := serv.PatchResource(partition, name, bytes.NewBuffer(resp))
-
+	body, err := serv.PatchResource(partition, name, bytes.NewBuffer(resp))
+	assert.Nil(t, err)
 	assert.Equal(t, *body, resp)
 }

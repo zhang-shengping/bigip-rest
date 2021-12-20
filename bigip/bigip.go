@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/zhang-shengping/bigiprest/bigip/bigiperrors"
+	"github.com/zhang-shengping/bigiprest/bigip/constants"
 )
 
 type Bigip struct {
@@ -18,10 +21,6 @@ type Bigip struct {
 type Session struct {
 	BigipReq *Bigip
 	Client   *http.Client
-}
-
-type HttpClient interface {
-	Do(req *http.Request) (*http.Response, error)
 }
 
 // init Bigip and Session struct for REST network application layer.
@@ -46,7 +45,7 @@ func InitSession(host string, username string, password string, insecure bool) *
 }
 
 // create application layer actions.
-func (se *Session) REST(method, path string, body io.Reader) *[]byte {
+func (se *Session) REST(method, path string, body io.Reader) (*[]byte, error) {
 	client := se.Client
 
 	url := "https://" + se.BigipReq.Host + path
@@ -62,13 +61,18 @@ func (se *Session) REST(method, path string, body io.Reader) *[]byte {
 	// TODO: throw error when resp has 404, 501 etc.
 	resp, err := client.Do(request)
 	if err != nil {
-		log.Panic("Response err:", err)
+		return nil, err
 	}
-	log.Printf("Response statue is: %s", resp.Status)
+
 	// If the Body is not both read to EOF and closed, the Client's underlying
 	// RoundTripper (typically Transport) may not be able to re-use a
 	// persistent TCP connection to the server for a subsequent "keep-alive" request
 	defer resp.Body.Close()
+
+	err = checkstatus(resp)
+	if err != nil {
+		return nil, err
+	}
 
 	ioBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -76,38 +80,50 @@ func (se *Session) REST(method, path string, body io.Reader) *[]byte {
 	}
 
 	log.Printf("Response Body is: %s", ioBody)
-	return &ioBody
+	return &ioBody, err
+}
+
+func checkstatus(resp *http.Response) error {
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return bigiperrors.ResponseError{
+			Resp: resp,
+		}
+	}
+	return nil
 }
 
 type Service struct {
-	Path string
+	Path constants.URI
 	// URL     string
 	Session *Session
 	// Fields *Fields
 }
 
 func (s *Service) URIForName(partition, name string) string {
-	return s.Path + "~" + partition + "~" + name
+	return string(s.Path) + "~" + partition + "~" + name
 }
 
 func (s *Service) URIForPartition(partition string) string {
-	return s.Path + "?" +
+	return string(s.Path) + "?" +
 		url.PathEscape("$filter=partition eq "+partition)
 }
 
-func (s *Service) GetResource(partition, name string) *[]byte {
+func (s *Service) GetResource(partition, name string) (*[]byte, error) {
 	log.Println("Get Reousrce")
-	return s.Session.REST(http.MethodGet, s.URIForName(partition, name), nil)
+	result, err := s.Session.REST(http.MethodGet, s.URIForName(partition, name), nil)
+	return result, err
 }
 
-func (s *Service) GetResources(partition string) *[]byte {
+func (s *Service) GetResources(partition string) (*[]byte, error) {
 	log.Println("Get Reousrces")
-	return s.Session.REST(http.MethodGet, s.URIForPartition(partition), nil)
+	result, err := s.Session.REST(http.MethodGet, s.URIForPartition(partition), nil)
+	return result, err
 }
 
-func (s *Service) PatchResource(partition, name string, body io.Reader) *[]byte {
+func (s *Service) PatchResource(partition, name string, body io.Reader) (*[]byte, error) {
 	log.Println("Patch Reousrce")
-	return s.Session.REST(http.MethodPatch, s.URIForName(partition, name), body)
+	result, err := s.Session.REST(http.MethodPatch, s.URIForName(partition, name), body)
+	return result, err
 }
 
 // type Fields struct {
