@@ -5,13 +5,11 @@ Some basic tests ensure the interface barely work.
 package bigip
 
 import (
-	"bytes"
 	"net/http"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
-	"github.com/zhang-shengping/bigiprest/bigip/constants"
 )
 
 func TestInitSession(t *testing.T) {
@@ -52,125 +50,26 @@ func TestREST(t *testing.T) {
 	assert.Equal(t, *body, resp)
 }
 
-func TestURIForName(t *testing.T) {
-	path := constants.VIRTUALADDRESS
-	partition := "test_partition"
-	name := "test_name"
-	serv := Service{
-		path,
-		&Session{},
-	}
-	expect := string(path) + "~" + partition + "~" + name
-	result := serv.URIForName(partition, name)
-
-	assert.Equal(t, result, expect)
-}
-
-func TestURIForPartition(t *testing.T) {
-	path := constants.VIRTUALADDRESS
-	partition := "test_partition"
-	serv := Service{
-		path,
-		&Session{},
-	}
-	expect := string(path) + "?$filter=partition" + "%20eq%20" + partition
-	result := serv.URIForPartition(partition)
-
-	assert.Equal(t, result, expect)
-}
-
-func TestGetResource(t *testing.T) {
+func TestRESTERROR(t *testing.T) {
+	//TODO: change to suit test
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	host := "bigip.com"
-	path := constants.VIRTUALADDRESS
+	host := "127.0.0.1"
+	path := "/success"
+	url := "https://" + host + path
+	resp := []byte("Not Found")
+	httpmock.RegisterResponder(http.MethodGet, url,
+		httpmock.NewBytesResponder(404, resp))
+
 	username := "admin"
 	password := "password"
 	inscure := true
-
 	se := InitSession(host, username, password, inscure)
 	se.Client = &http.Client{}
 
-	serv := Service{
-		Path:    path,
-		Session: se,
-	}
-	partition := "Project_test123"
-	name := "test"
-	url := "https://" + host + serv.URIForName(partition, name)
-
-	resp := []byte("sccuess")
-	httpmock.RegisterResponder(
-		http.MethodGet, url,
-		httpmock.NewBytesResponder(200, resp),
-	)
-
-	body, err := serv.GetResource(partition, name)
-	assert.Nil(t, err)
-	assert.Equal(t, *body, resp)
-}
-
-func TestGetResources(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
-	host := "bigip.com"
-	path := constants.VIRTUALADDRESS
-	username := "admin"
-	password := "password"
-	inscure := true
-
-	se := InitSession(host, username, password, inscure)
-	se.Client = &http.Client{}
-	serv := Service{
-		Path:    path,
-		Session: se,
-	}
-	// serv.Session.Client = &http.Client{}
-	partition := "Project_test"
-	url := "https://" + host + serv.URIForPartition(partition)
-
-	resp := []byte("hello")
-
-	httpmock.RegisterResponder(
-		http.MethodGet, url, httpmock.NewBytesResponder(200, resp),
-	)
-
-	body, err := serv.GetResources(partition)
-	assert.Nil(t, err)
-	assert.Equal(t, *body, resp)
-
-}
-
-func TestPatchResource(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
-	host := "bigip.com"
-	path := constants.VIRTUALADDRESS
-	username := "admin"
-	password := "password"
-	inscure := true
-
-	se := InitSession(host, username, password, inscure)
-	se.Client = &http.Client{}
-
-	serv := Service{
-		Path:    path,
-		Session: se,
-	}
-	partition := "Project_test123"
-	name := "test"
-	url := "https://" + host + serv.URIForName(partition, name)
-
-	resp := []byte("sccuess")
-	httpmock.RegisterResponder(
-		http.MethodPatch, url,
-		httpmock.NewBytesResponder(200, resp),
-	)
-
-	body, err := serv.PatchResource(partition, name, bytes.NewBuffer(resp))
-	assert.Nil(t, err)
-	assert.Equal(t, *body, resp)
+	body, err := se.REST(http.MethodGet, path, nil)
+	// TODO check the content
+	assert.NotNil(t, err)
+	assert.Nil(t, body)
 }
