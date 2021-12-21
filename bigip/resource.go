@@ -3,7 +3,11 @@ package bigip
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
+
+	"github.com/zhang-shengping/bigiprest/bigip/bigiperrors"
+	"github.com/zhang-shengping/bigiprest/bigip/constants"
 )
 
 type VirtualAddress struct {
@@ -31,46 +35,77 @@ type VirtualAddresses struct {
 
 func NewVirtualAddressServ(se *Session) *Service {
 	return &Service{
-		"/mgmt/tm/ltm/virtual-address/", se}
+		constants.VIRTUALADDRESS, se}
 
 }
 
-func (s *Service) GetVirtualAddress(partition, name string) *VirtualAddress {
+// why not to do like this? less code to write
+// func (s *Service) GetResource(partition, name string, res *Resouce) *Resource
+// func (s *VirtualAddress) GetResource(partition, name string, res *Resouce) *Resource
+// Resource could be virutaladdress, snatip etc.
+
+func (s *Service) GetVirtualAddress(partition, name string) (*VirtualAddress, error) {
 	// create a new object
-	addr := new(VirtualAddress)
-	err := json.Unmarshal(*s.GetResource(partition, name), addr)
+	result := new(VirtualAddress)
+
+	data, err := s.GetResource(partition, name)
 	if err != nil {
-		log.Panic("GetVirtualAddress: Can not unmarshal VirtualAddress")
+		e := bigiperrors.ServiceError{
+			ResourceError: fmt.Sprintf("Can not get resource %s from partiton %s", name, partition),
+			HttpError:     err,
+		}
+		return nil, e
 	}
-	return addr
+
+	err = json.Unmarshal(*data, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, err
 }
 
-func (s *Service) GetVirtualAddresses(partition string) *VirtualAddresses {
+func (s *Service) GetVirtualAddresses(partition string) (*VirtualAddresses, error) {
 	// create a new object
-	addrs := new(VirtualAddresses)
-	err := json.Unmarshal(*s.GetResources(partition), addrs)
+	result := new(VirtualAddresses)
+	data, err := s.GetResources(partition)
 	if err != nil {
-		log.Panic("GetVirtualAddresses: Can not unmarshal VirtualAddresses")
+		e := bigiperrors.ServiceError{
+			ResourceError: fmt.Sprintf("Can not get resources from partiton %s", partition),
+			HttpError:     err,
+		}
+		return nil, e
 	}
-	return addrs
+
+	err = json.Unmarshal(*data, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, err
 }
 
-func (s *Service) PatchVritualAddress(partition, name string, body *VirtualAddress) *VirtualAddress {
-	addr := new(VirtualAddress)
+func (s *Service) PatchVritualAddress(partition, name string, body *VirtualAddress) (*VirtualAddress, error) {
+	result := new(VirtualAddress)
 	data, err := json.Marshal(body)
 	if err != nil {
 		log.Panic("Can not marshal body", body)
 	}
 	raw := []byte(data)
-	err = json.Unmarshal(*s.PatchResource(partition, name, bytes.NewBuffer(raw)), addr)
+
+	// err is declared again ?
+	addr, err := s.PatchResource(partition, name, bytes.NewBuffer(raw))
 	if err != nil {
-		log.Panic("PatchVritualAddress: Can not unmarshal VirtualAddress")
+		e := bigiperrors.ServiceError{
+			ResourceError: fmt.Sprintf("Can not patch resource: %s of partiton %s with body %v",
+				name, partition, body),
+			HttpError: err,
+		}
+		return nil, e
 	}
-	return addr
+
+	err = json.Unmarshal(*addr, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, err
 }
-
-// selfip
-
-// snatpool
-
-// snatmember

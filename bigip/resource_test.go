@@ -22,7 +22,7 @@ func TestNewVirtualAddressServ(t *testing.T) {
 		InitSession(host, username, password, insecure),
 	)
 
-	assert.Equal(t, virtualaddr.Path, "/mgmt/tm/ltm/virtual-address/")
+	assert.Equal(t, string(virtualaddr.Path), "/mgmt/tm/ltm/virtual-address/")
 }
 
 func TestGetVirtualAddress(t *testing.T) {
@@ -61,7 +61,7 @@ func TestGetVirtualAddress(t *testing.T) {
 	httpmock.RegisterResponder(http.MethodGet, url,
 		httpmock.NewBytesResponder(200, resp))
 
-	result := serv.GetVirtualAddress(partition, name)
+	result, err := serv.GetVirtualAddress(partition, name)
 
 	expect := &VirtualAddress{
 		Name:        name,
@@ -71,6 +71,7 @@ func TestGetVirtualAddress(t *testing.T) {
 		Description: "test1:",
 	}
 
+	assert.Nil(t, err)
 	assert.Equal(t, result, expect)
 
 }
@@ -112,7 +113,7 @@ func TestGetVirtualAddresses(t *testing.T) {
 	httpmock.RegisterResponder(http.MethodGet, url,
 		httpmock.NewBytesResponder(200, resp))
 
-	result := serv.GetVirtualAddresses(partition)
+	result, err := serv.GetVirtualAddresses(partition)
 
 	expect := &VirtualAddresses{
 		Items: []VirtualAddress{
@@ -126,6 +127,7 @@ func TestGetVirtualAddresses(t *testing.T) {
 		},
 	}
 
+	assert.Nil(t, err)
 	assert.Equal(t, result, expect)
 }
 
@@ -168,7 +170,7 @@ func TestPatchVirtualAddress(t *testing.T) {
 	httpmock.RegisterResponder(http.MethodPatch, url,
 		httpmock.NewBytesResponder(200, resp))
 
-	result := serv.PatchVritualAddress(partition, name, &body)
+	result, err := serv.PatchVritualAddress(partition, name, &body)
 
 	expect := &VirtualAddress{
 		Name:        name,
@@ -178,6 +180,7 @@ func TestPatchVirtualAddress(t *testing.T) {
 		Description: "it is ok",
 	}
 
+	assert.Nil(t, err)
 	assert.Equal(t, result, expect)
 
 }
