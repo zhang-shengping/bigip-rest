@@ -18,7 +18,7 @@ func (e ResponseError) Error() string {
 
 type ServiceError struct {
 	ResourceError string
-	HttpError     error
+	HttpError     string
 }
 
 func (e ServiceError) Error() string {

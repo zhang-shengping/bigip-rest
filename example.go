@@ -13,42 +13,46 @@ func main() {
 	insecure := true
 
 	// get a virtual address service
-	vipserv := bigip.NewVirtualAddressServ(
+	serv := bigip.NewService(
 		bigip.InitSession(host, username, password, insecure),
 	)
 
 	partition := "Project_346052548d924ee095b3c2a4f05244ac"
-	// addrname := "Project_f6638d02-29f8-41aa-9433-179bf49f5fbd"
-	addrname := "Project_f6638d02-29f8-41aa-9433-179bf49f5123"
+	addrname := "Project_f6638d02-29f8-41aa-9433-179bf49f5fbd"
+	// addrname := "Project_f6638d02-29f8-41aa-9433-179bf49f5123"
 
+	addr := new(bigip.VirtualAddress)
 	// get a virtual address
-	virtualaddr, err := vipserv.GetVirtualAddress(
+	err := serv.GetResource(
 		partition,
 		addrname,
+		addr,
 	)
 	if err != nil {
 		log.Panic(err)
 	}
-	log.Printf("virtual address is %s", virtualaddr)
+	log.Printf("virtual address is %s", addr)
 
+	addr.Description = "example"
+	err = serv.PatchResource(
+		partition,
+		addrname,
+		addr,
+	)
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Printf("Patched virtual address is %s", addr)
+
+	addrs := new(bigip.VirtualAddresses)
 	// get a virtual addresses of a partition
-	virtualaddrs, err := vipserv.GetVirtualAddresses(
+	err = serv.GetResources(
 		partition,
+		addrs,
 	)
 	if err != nil {
 		log.Panic(err)
 	}
-	log.Printf("virtual address in %s is %s", partition, virtualaddrs.Items)
+	log.Printf("virtual address in %s is %s", partition, addrs)
 
-	virtualaddr, err = vipserv.PatchVritualAddress(
-		partition,
-		addrname,
-		&bigip.VirtualAddress{
-			Description: "example",
-		},
-	)
-	if err != nil {
-		log.Panic(err)
-	}
-	log.Printf("Patched virtual address is %s", virtualaddr)
 }

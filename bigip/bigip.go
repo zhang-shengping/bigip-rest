@@ -5,10 +5,8 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 
 	"github.com/zhang-shengping/bigiprest/bigip/bigiperrors"
-	"github.com/zhang-shengping/bigiprest/bigip/constants"
 )
 
 type Bigip struct {
@@ -91,55 +89,3 @@ func checkstatus(resp *http.Response) error {
 	}
 	return nil
 }
-
-type Service struct {
-	Path constants.URI
-	// URL     string
-	Session *Session
-	// Fields *Fields
-}
-
-func (s *Service) URIForName(partition, name string) string {
-	return string(s.Path) + "~" + partition + "~" + name
-}
-
-func (s *Service) URIForPartition(partition string) string {
-	return string(s.Path) + "?" +
-		url.PathEscape("$filter=partition eq "+partition)
-}
-
-func (s *Service) GetResource(partition, name string) (*[]byte, error) {
-	log.Println("Get Reousrce")
-	result, err := s.Session.REST(http.MethodGet, s.URIForName(partition, name), nil)
-	return result, err
-}
-
-func (s *Service) GetResources(partition string) (*[]byte, error) {
-	log.Println("Get Reousrces")
-	result, err := s.Session.REST(http.MethodGet, s.URIForPartition(partition), nil)
-	return result, err
-}
-
-func (s *Service) PatchResource(partition, name string, body io.Reader) (*[]byte, error) {
-	log.Println("Patch Reousrce")
-	result, err := s.Session.REST(http.MethodPatch, s.URIForName(partition, name), body)
-	return result, err
-}
-
-// type Fields struct {
-// 	Partition            string
-// 	Name                 string
-// 	ExpandSubcollections bool
-// 	Options
-// }
-
-// cannot use interface Resource pointer as a parameter.
-// func ConvertByteBody(body *[]byte, res Resource) {
-// 	json.Unmarshal(*body, res)
-// }
-
-// cannot pass a interface pointer to func
-// it will raise error
-// func (se *Session) Get(sev *ResourceServ) *[]byte {
-// 	sev.GetResourceURI()
-// }
